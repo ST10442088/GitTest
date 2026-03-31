@@ -13,11 +13,7 @@ public class Batteries : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-     /*  batteryLifetime = batteryLifetime - Time.deltaTime;
-        if (batteryLifetime <= 0)
-        {
-            Destroy(this.gameObject);
-        } */
+ 
     }
 
     private void OnTriggerEnter(Collider other)

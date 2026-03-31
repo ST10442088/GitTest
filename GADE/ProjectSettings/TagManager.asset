@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 3
   tags:
   - ObstacleSpawn
+  - Electric Cable
+  - Battery
   layers:
   - Default
   - TransparentFX

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine.SceneManagement;
+using Unity.VisualScripting;
 
 public class GameManager : MonoBehaviour
 {
@@ -25,6 +26,7 @@ public class GameManager : MonoBehaviour
     //OBSTACLES
     [SerializeField] Transform doubleSeatObstacle;
     [SerializeField] Transform singleSeatObstacle;
+    [SerializeField] Transform electricCableInPuddle;
     [SerializeField] int initialNumber_OfObstacles = 4;
 
     //BATTERIES
@@ -90,24 +92,38 @@ public class GameManager : MonoBehaviour
         nextTrainTileRotation = nextTrainTile.rotation;
 
         SpawnObstacles(newTrainTile);
-        SpawnPickups();
+        SpawnElectricCables(newTrainTile);
+        SpawnPickups(newTrainTile);
     }
 
 
 
-    void SpawnPickups()
+    void SpawnPickups(Transform newTrainTile)
     {
-        newBatteryPosition = Random.Range(minNewBatteryPosition, maxNewBatteryPosition);
-        batteryPickupPosition.z = batteryPickupPosition.z + newBatteryPosition;
-        batteryPickupPosition.y = -2;
 
-        float newBatteryXpos = Random.Range(-7, 7);
-        batteryPickupPosition.x = newBatteryXpos;
+        List<GameObject> batterySpawnPoints = new List<GameObject>();
+        foreach (Transform child in newTrainTile)
+        {
+            if (child.gameObject.CompareTag("Battery"))
+            {
+                batterySpawnPoints.Add(child.gameObject);
+            }
+        }
 
-        Vector3 pickupSpawnPosition = batteryPickupPosition;
-        pickupSpawnPosition.z = batteryPickupPosition.z;
-        Transform newPickup = Instantiate(batteryickup, pickupSpawnPosition, Quaternion.identity);
-        
+        if(batterySpawnPoints.Count > 0)
+        {
+            int randomizedSpawnPoints = Random.Range(0, batterySpawnPoints.Count);
+            GameObject batterySpawnPositionObject = batterySpawnPoints[randomizedSpawnPoints];
+            Vector3 batterySpawnPosition = batterySpawnPositionObject.transform.position;
+
+            float newBatteryXpos = Random.Range(-7, 7);
+            batteryPickupPosition.x = newBatteryXpos;
+            batterySpawnPosition.x = newBatteryXpos;
+            batterySpawnPosition.y = -2;
+
+            Transform newBatteryObject = Instantiate(batteryickup, batterySpawnPosition, Quaternion.identity);
+            newBatteryObject.SetParent(batterySpawnPositionObject.transform);
+        }
     }
 
 
@@ -142,21 +158,44 @@ public class GameManager : MonoBehaviour
             Transform newObstacleObject = Instantiate(doubleSeatObstacle, spawnPosition, Quaternion.identity);
 
             newObstacleObject.SetParent(spawnPositionObject.transform);
-            
-            int randomizedSpawnPoint1 = Random.Range(0, obstacleSpawnPoints.Count) ;
-            if(randomizedSpawnPoint1 == randomizedSpawnPoint)
+
             {
-                randomizedSpawnPoint1 = Random.Range(0, obstacleSpawnPoints.Count);
+                int randomizedSpawnPoint1 = Random.Range(0, obstacleSpawnPoints.Count);
+                if (randomizedSpawnPoint1 == randomizedSpawnPoint)
+                {
+                    randomizedSpawnPoint1 = Random.Range(0, obstacleSpawnPoints.Count);
+                }
+
+                GameObject spawnPositionObject1 = obstacleSpawnPoints[randomizedSpawnPoint1];
+                Vector3 spawnPosition1 = spawnPositionObject1.transform.position;
+
+                Transform newObstacleObject1 = Instantiate(singleSeatObstacle, spawnPosition1, Quaternion.identity);
+                newObstacleObject1.SetParent(spawnPositionObject1.transform);
             }
-           
-            GameObject spawnPositionObject1 = obstacleSpawnPoints[randomizedSpawnPoint1]; 
-            Vector3 spawnPosition1 = spawnPositionObject1.transform.position;
-
-            Transform newObstacleObject1 = Instantiate(singleSeatObstacle,spawnPosition1, Quaternion.identity);
-            newObstacleObject1.SetParent(spawnPositionObject1.transform);
-        }
+        } 
     }
+        void SpawnElectricCables(Transform newTrainTile)
+        {
+            List<GameObject> electricCableSpawnPoints = new List<GameObject>();
+            foreach(Transform child in newTrainTile)
+            {
+                if(child.gameObject.CompareTag("Electric Cable"))
+                {
+                    electricCableSpawnPoints.Add(child.gameObject);   
+                }
+            }
 
+            if(electricCableSpawnPoints.Count > 0)
+            {
+                int randomizedSpawnPoints = Random.Range(0, electricCableSpawnPoints.Count);
+                GameObject cableSpawnPositionObject = electricCableSpawnPoints[randomizedSpawnPoints];
+                Vector3 cableSpawnPosition = cableSpawnPositionObject.transform.position;
+                float cableYRotation = Random.Range(0, 180);
+                Quaternion cableRotation = Quaternion.Euler(Quaternion.identity.x, cableYRotation, Quaternion.identity.z);
+                Transform newCableObject = Instantiate(electricCableInPuddle, cableSpawnPosition, cableRotation);
+                newCableObject.SetParent(cableSpawnPositionObject.transform);
+            }
+        }
     void RestartGame()
     {
         SceneManager.LoadScene(0);

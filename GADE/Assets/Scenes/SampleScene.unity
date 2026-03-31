@@ -153,6 +153,7 @@ MonoBehaviour:
   initialNumber_OfTrainsSpawned: 10
   doubleSeatObstacle: {fileID: 2663091113466485587, guid: 6e0c0eccadd816d4fab4bf5a48f250a0, type: 3}
   singleSeatObstacle: {fileID: 8185287375375047253, guid: 2ae556c867cf45043900de4dc78c16fe, type: 3}
+  electricCableInPuddle: {fileID: 4149807121096564585, guid: 1af7c3b7ce092db4fb3a79c79629af2d, type: 3}
   initialNumber_OfObstacles: 4
   batteryLifeTimer: 45
   batteryickup: {fileID: 5002560733503657358, guid: 2bd08d24ae8d4bf4bb364c685aee9757, type: 3}
