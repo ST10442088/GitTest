@@ -35,7 +35,7 @@ public class PlayerMovement : MonoBehaviour
     private void FixedUpdate()
     {
         swerveMovement = Input.GetAxis("Horizontal") * swerveSpeed;
-       // this.transform.Translate(swerveMovement * Time.deltaTime, 0, forwardMovementSpeed * Time.deltaTime);
+      
        Vector3 playerMovement = new(swerveMovement * Time.deltaTime, 0, forwardMovementSpeed * Time.deltaTime);
         playerRB.MovePosition(this.transform.position + playerMovement);
 

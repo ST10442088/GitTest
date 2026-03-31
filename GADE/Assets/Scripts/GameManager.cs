@@ -45,7 +45,7 @@ public class GameManager : MonoBehaviour
     //SCORE
     [SerializeField] TMP_Text scoreText;
     float scoreAmount = 0;
-    float scoreAmountIncrease = 5;
+    float scoreAmountIncrease = 1;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
