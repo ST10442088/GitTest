@@ -196,7 +196,7 @@ public class GameManager : MonoBehaviour
                 newCableObject.SetParent(cableSpawnPositionObject.transform);
             }
         }
-    void RestartGame()
+   public void RestartGame()
     {
         SceneManager.LoadScene(0);
         Time.timeScale = 1f;
