@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine.SceneManagement;
 using Unity.VisualScripting;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -23,11 +24,17 @@ public class GameManager : MonoBehaviour
     [Tooltip("The rotation of the next train prefab")]
     Quaternion nextTrainTileRotation;
 
+   [SerializeField] float zPositionIncrease = 30;
+
     //OBSTACLES
     [SerializeField] Transform doubleSeatObstacle;
     [SerializeField] Transform singleSeatObstacle;
     [SerializeField] Transform electricCableInPuddle;
     [SerializeField] int initialNumber_OfObstacles = 4;
+    float obstMinXposition;
+     float obstMaxXposition;
+    float zPosIncrease;
+    float zPosDecrease;
 
     //BATTERIES
     public float batteryLifeTimer = 5;
@@ -44,8 +51,21 @@ public class GameManager : MonoBehaviour
 
     //SCORE
     [SerializeField] TMP_Text scoreText;
-    float scoreAmount = 0;
+    public float scoreAmount = 0;
     float scoreAmountIncrease = 1;
+    public static GameManager gameManagerObject {  get; private set; }
+
+    //PHASABILITY
+    [SerializeField] Transform phasabilityDevice;
+
+    [SerializeField] Button LossButton;
+
+
+    //INVENTORY
+    public static InventoryManager InventoryManager { get; private set; }
+    public List<IGameManager> gameManagerList = new List<IGameManager>();
+
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -67,6 +87,12 @@ public class GameManager : MonoBehaviour
 
         batteryLifeText.text = "Battery Life: " + (int)batteryLifeTimer;
         scoreText.text = "Score :" + (int)scoreAmount;
+
+        InventoryManager = GetComponent<InventoryManager>();
+
+        gameManagerList.Add(InventoryManager);
+
+        StartCoroutine(StartManager());
     }
 
     // Update is called once per frame
@@ -75,11 +101,15 @@ public class GameManager : MonoBehaviour
         batteryLifeTimer = batteryLifeTimer - Time.deltaTime;
         if (batteryLifeTimer <= 0)
         {
+
             Time.timeScale = 0f;
-            RestartGame();
-            
+
         }
         batteryLifeText.text = "Battery Life: " + (int)batteryLifeTimer;
+        if (Time.timeScale == 0f)
+        {
+          LossButton.gameObject.SetActive(true);
+        }
 
     }
 
@@ -87,8 +117,11 @@ public class GameManager : MonoBehaviour
     {
         Transform newTrainTile = Instantiate(trainTile, nextTrainTile_SpawnPosition, nextTrainTileRotation);
         Transform nextTrainTile = newTrainTile.Find("Next Spawn Position");
+        
+        Vector3 newPosition = nextTrainTile.position;
+        newPosition.z = newPosition.z + zPositionIncrease;//25F;//10;
 
-        nextTrainTile_SpawnPosition = nextTrainTile.position;
+        nextTrainTile_SpawnPosition = newPosition;//nextTrainTile.position;
         nextTrainTileRotation = nextTrainTile.rotation;
 
         SpawnObstacles(newTrainTile);
@@ -112,8 +145,9 @@ public class GameManager : MonoBehaviour
 
         if(batterySpawnPoints.Count > 0)
         {
-            int randomizedSpawnPoints = Random.Range(0, batterySpawnPoints.Count);
-            GameObject batterySpawnPositionObject = batterySpawnPoints[randomizedSpawnPoints];
+            for (int i = 0; i < batterySpawnPoints.Count; i++)
+            {
+            GameObject batterySpawnPositionObject = batterySpawnPoints[i];
             Vector3 batterySpawnPosition = batterySpawnPositionObject.transform.position;
 
             float newBatteryXpos = Random.Range(-7, 7);
@@ -123,6 +157,31 @@ public class GameManager : MonoBehaviour
 
             Transform newBatteryObject = Instantiate(batteryickup, batterySpawnPosition, Quaternion.identity);
             newBatteryObject.SetParent(batterySpawnPositionObject.transform);
+            }
+
+        }
+
+
+        List<GameObject> phasabilityPickupsSpawns = new List<GameObject>();
+        foreach(Transform child in newTrainTile)
+        {
+            if(child.gameObject.CompareTag("Phasability Device"))
+            {
+                phasabilityPickupsSpawns.Add(child.gameObject);
+            }
+        }
+
+        if(phasabilityPickupsSpawns.Count > 0)
+        {
+            for(int i = 0; i<phasabilityPickupsSpawns.Count; i++)
+            {
+                GameObject phasabilityDeviceObject = phasabilityPickupsSpawns[i];
+                Vector3 phasabilityDevice_SpawnPos = phasabilityDeviceObject.transform.position;
+                float randomizedXposition = Random.Range(-4.5f, 4.5f);
+                phasabilityDevice_SpawnPos.x = randomizedXposition;
+                Transform newPhasabilityDevice = Instantiate(phasabilityDevice, phasabilityDevice_SpawnPos, Quaternion.identity);
+                newPhasabilityDevice.SetParent(phasabilityDeviceObject.transform);
+            }
         }
     }
 
@@ -130,26 +189,33 @@ public class GameManager : MonoBehaviour
     void SpawnObstacles(Transform newTrainTileObject)
     {
         //Store the doubleSeatObstacle game objects
-        List<GameObject> obstacleSpawnPoints = new List<GameObject>();
+        List<GameObject> doubleSeatSpawnPoints = new List<GameObject>();
 
         foreach(Transform childObject in newTrainTileObject) //Go through all the child objects of the train object
         {
-            if(childObject.gameObject.CompareTag("ObstacleSpawn")) //If any of them have the tag, then...
+            if(childObject.gameObject.CompareTag("Double Seat")) //If any of them have the tag, then...
             {
                 //Put that object into the list
-              obstacleSpawnPoints.Add(childObject.gameObject);
+              doubleSeatSpawnPoints.Add(childObject.gameObject);
             }
         }
 
-        if(obstacleSpawnPoints.Count > 0)
+        if(doubleSeatSpawnPoints.Count > 0)
         {
             /* Variable to be used to choose which game object under the train object in the 
              * initialized list will be used to spawn the doubleSeatObstacle. In this case, the empty game objects */
-            int randomizedSpawnPoint = Random.Range(0, obstacleSpawnPoints.Count);
-
-            
+           // int randomizedSpawnPoint = 0;
+           for(int i = 0; i<doubleSeatSpawnPoints.Count; i++)
+            {
             //The game object at the randomly chosen index will be assigned to a GameObject variable
-            GameObject spawnPositionObject = obstacleSpawnPoints[randomizedSpawnPoint];
+            GameObject spawnPositionObject = doubleSeatSpawnPoints[i];
+
+            obstMinXposition = -7f;
+            obstMaxXposition = 0.60f;
+            float obstXPosition = Random.Range(obstMinXposition, obstMaxXposition);
+
+            Vector3 spawnPosObjectPosition = new(obstXPosition, spawnPositionObject.transform.position.y, spawnPositionObject.transform.position.z);
+            spawnPositionObject.transform.position = spawnPosObjectPosition; 
 
             //That variable's position will be used to determine where the doubleSeatObstacle spawns
             Vector3 spawnPosition = spawnPositionObject.transform.position; 
@@ -158,23 +224,45 @@ public class GameManager : MonoBehaviour
             Transform newObstacleObject = Instantiate(doubleSeatObstacle, spawnPosition, Quaternion.identity);
 
             newObstacleObject.SetParent(spawnPositionObject.transform);
+            }
+            
+
 
             {
-                int randomizedSpawnPoint1 = Random.Range(0, obstacleSpawnPoints.Count);
-                if (randomizedSpawnPoint1 == randomizedSpawnPoint)
+                List<GameObject> singleSeatSpawnPoints = new List<GameObject>();
+                foreach(Transform childObject in newTrainTileObject)
                 {
-                    randomizedSpawnPoint1 = Random.Range(0, obstacleSpawnPoints.Count);
+                    if(childObject.CompareTag("Single Seat"))
+                    {
+                       singleSeatSpawnPoints.Add(childObject.gameObject);
+                    }
                 }
 
-                GameObject spawnPositionObject1 = obstacleSpawnPoints[randomizedSpawnPoint1];
-                Vector3 spawnPosition1 = spawnPositionObject1.transform.position;
+                if(singleSeatSpawnPoints.Count > 0)
+                {
+                    for(int i = 0; i < singleSeatSpawnPoints.Count; i++)
+                    {
+                GameObject spawnPositionObject1 = singleSeatSpawnPoints[i];
 
-                Transform newObstacleObject1 = Instantiate(singleSeatObstacle, spawnPosition1, Quaternion.identity);
+                obstMaxXposition = 6f;
+                obstMinXposition = -4f;
+                float obstXPosition1 = Random.Range(obstMinXposition, obstMaxXposition);
+
+                Vector3 spawnPosObjectPosition1 = new(obstXPosition1, spawnPositionObject1.transform.position.y, spawnPositionObject1.transform.position.z);
+              /*  spawnPositionObject1.transform.position = spawnPosObjectPosition1; 
+                
+                Vector3 spawnPosition1 = spawnPositionObject1.transform.position;*/
+
+                Transform newObstacleObject1 = Instantiate(singleSeatObstacle, spawnPosObjectPosition1, Quaternion.identity);
                 newObstacleObject1.SetParent(spawnPositionObject1.transform);
+                    }
+                }
+
+
             }
         } 
     }
-        void SpawnElectricCables(Transform newTrainTile)
+    void SpawnElectricCables(Transform newTrainTile)
         {
             List<GameObject> electricCableSpawnPoints = new List<GameObject>();
             foreach(Transform child in newTrainTile)
@@ -187,15 +275,25 @@ public class GameManager : MonoBehaviour
 
             if(electricCableSpawnPoints.Count > 0)
             {
-                int randomizedSpawnPoints = Random.Range(0, electricCableSpawnPoints.Count);
-                GameObject cableSpawnPositionObject = electricCableSpawnPoints[randomizedSpawnPoints];
-                Vector3 cableSpawnPosition = cableSpawnPositionObject.transform.position;
+
+            for(int i = 0; i<electricCableSpawnPoints.Count; i++)
+            {
+                GameObject cableSpawnPositionObject = electricCableSpawnPoints[i];
+                /**/
+                obstMinXposition = -4f;//10f;
+                obstMaxXposition = 4.8f;
+                float puddleXposition = Random.Range(obstMinXposition, obstMaxXposition);
+                Vector3 cableSpawnPosition = new(puddleXposition, cableSpawnPositionObject.transform.position.y, cableSpawnPositionObject.transform.position.z);//cableSpawnPositionObject.transform.position;
                 float cableYRotation = Random.Range(0, 180);
                 Quaternion cableRotation = Quaternion.Euler(Quaternion.identity.x, cableYRotation, Quaternion.identity.z);
                 Transform newCableObject = Instantiate(electricCableInPuddle, cableSpawnPosition, cableRotation);
                 newCableObject.SetParent(cableSpawnPositionObject.transform);
             }
+              //  int randomizedSpawnPoints = Random.Range(0, electricCableSpawnPoints.Count);
+
+            }
         }
+
    public void RestartGame()
     {
         SceneManager.LoadScene(0);
@@ -208,4 +306,14 @@ public class GameManager : MonoBehaviour
         scoreAmount = scoreAmount + scoreAmountIncrease;
         scoreText.text = "Score: " + (int)scoreAmount;
     }
+
+    IEnumerator StartManager()
+    {
+        foreach(IGameManager gameManager in gameManagerList)
+        {
+            gameManager.DoBeforeGameStart();
+        }
+        yield return null;
+    }
+
 }

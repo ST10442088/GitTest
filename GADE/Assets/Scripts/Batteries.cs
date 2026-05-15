@@ -18,7 +18,7 @@ public class Batteries : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-       if (other.gameObject.name == "Capsule")
+       if (other.gameObject.CompareTag("Player"))
         if(gameManager.batteryLifeTimer > 0)
         {
               gameManager.batteryLifeTimer = 45;

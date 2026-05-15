@@ -18,10 +18,9 @@ public class PuddleDestruction : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if(other.gameObject.name == "Capsule")
+        if (other.gameObject.CompareTag("Player"))
         {
             Time.timeScale = 0f;
-            gameManager.RestartGame();
         }
     }
 }
