@@ -4,7 +4,6 @@
 TagManager:
   serializedVersion: 3
   tags:
-  - Electric Cable
   - Battery
   - Obstacle Collider
   - Train Collider
@@ -12,6 +11,10 @@ TagManager:
   - Single Seat
   - ObstacleSpawn
   - Phasability Device
+  - Puddle
+  - Electric Cable
+  - Broom
+  - Boss Spawn
   layers:
   - Default
   - TransparentFX

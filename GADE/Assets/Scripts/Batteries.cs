@@ -3,7 +3,7 @@ using UnityEngine;
 public class Batteries : MonoBehaviour
 {
     GameManager gameManager;
-    float batteryLifetime = 35f;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -23,8 +23,9 @@ public class Batteries : MonoBehaviour
         {
               gameManager.batteryLifeTimer = 45;
               Debug.Log("Battery life refilled!");
+              Destroy(this.gameObject);
         }
 
-       Destroy(this.gameObject);
+
     }
 }

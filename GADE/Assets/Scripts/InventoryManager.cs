@@ -30,6 +30,10 @@ public class InventoryManager : MonoBehaviour, IGameManager
             /*The powerUpName is the key, and the value is the number of the powerupType collected
             If one of them was already collected, increase the value/amount of it, by 1 */
             powerUps[powerupName] = powerUps[powerupName] + 1;
+            if (powerUps[powerupName] >= 3 && powerupName == "Phasability Device")
+            {
+                powerUps[powerupName] = 3;
+            }
         }
         else //If that powerupType hasn't yet been collected, the value/its amount, will be 1
         {

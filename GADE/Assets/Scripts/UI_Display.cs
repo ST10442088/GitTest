@@ -6,6 +6,9 @@ using UnityEngine;
 public class UI_Display : MonoBehaviour
 {
    [SerializeField] PlayerMovement player;
+   BroomBehavior broomBehavior;
+
+
 
 [SerializeField] int guiXposition = 50;
    [SerializeField] int guiYposition = -10;
@@ -16,6 +19,7 @@ public class UI_Display : MonoBehaviour
 
     private void Start()
     {
+        // broomBehavior = GetComponent<BroomBehavior>().broom;
 
     }
 
@@ -61,34 +65,17 @@ public class UI_Display : MonoBehaviour
                 GameManager.InventoryManager.UseEquippedItem("Phasability Device");
                 if(player != null)
                 {
-                player.PhaseThrough();
-                }
-
-                else if(player == null)
-                {
-                    Debug.Log("What were you expecting man?");
+                 StartCoroutine(player.PhaseThrough());
                 }
 
             }
 
         }
 
-        else if (equippedItem == "Ice Cube")
-        {
-            if (GUI.Button(new Rect(currentXposition, guiYposition, guiWidth, guiHeight), new GUIContent("Use Ice Cube")))
-            {
-                GameManager.InventoryManager.UseEquippedItem("Ice Cube");
-            }
+    }
 
-        }
-
-        else if (equippedItem == "Grenade")
-        {
-            if (GUI.Button(new Rect(currentXposition, guiYposition, guiWidth, guiHeight), new GUIContent("Use Grenade")))
-            {
-                GameManager.InventoryManager.UseEquippedItem("Grenade");
-            }
-
-        }
+    public void AssignBroomInstance(BroomBehavior broom)
+    {
+        broomBehavior = broom;
     }
 }

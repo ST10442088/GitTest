@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine.SceneManagement;
 using Unity.VisualScripting;
 using UnityEngine.UI;
+using Unity.VisualScripting.Dependencies.Sqlite;
 
 public class GameManager : MonoBehaviour
 {
@@ -42,8 +43,8 @@ public class GameManager : MonoBehaviour
     Quaternion batteryickupRotation;
     Vector3 batteryPickupPosition;
 
-    float minNewBatteryPosition = 30;
-    float maxNewBatteryPosition = 50;
+    
+
     float newBatteryPosition;
 
     [SerializeField] TMP_Text batteryLifeText;
@@ -51,12 +52,19 @@ public class GameManager : MonoBehaviour
 
     //SCORE
     [SerializeField] TMP_Text scoreText;
-    public float scoreAmount = 0;
-    float scoreAmountIncrease = 1;
+
+    [PrimaryKey, AutoIncrement] int playerID {  get; set; }
+
+    public int scoreAmount = 0;
+    int scoreAmountIncrease = 1;
+    public static TMP_Text highScore;
+    public static TMP_Text finalScore;
     public static GameManager gameManagerObject {  get; private set; }
 
     //PHASABILITY
     [SerializeField] Transform phasabilityDevice;
+    float minPhaseXposition;
+    float maxPhaseXposition;
 
     [SerializeField] Button LossButton;
 
@@ -65,11 +73,31 @@ public class GameManager : MonoBehaviour
     public static InventoryManager InventoryManager { get; private set; }
     public List<IGameManager> gameManagerList = new List<IGameManager>();
 
+    //BROOM
+    [SerializeField] Transform broom;
 
+    //KNIVES
+    [SerializeField]Transform knifeObject;
+    float knifeSpeed = 60f;
+    public float timeBeforeSpawn = 20f;
+
+   [SerializeField] PlayerMovement player;
+    float gameTimer = 0;
+    float levelSwitchTime = 5f;
+
+
+    //PLAYER INFO
+    string playerName = "Player";
+   
+    public static GameManager Instance;
+    bool isGameLost = false;
+
+    SQLiteConnection database;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+
         //Before the game starts, the next tile to spawn is the first one
         nextTrainTile_SpawnPosition = trainStartPosition;
         nextTrainTileRotation = Quaternion.identity;
@@ -93,25 +121,77 @@ public class GameManager : MonoBehaviour
         gameManagerList.Add(InventoryManager);
 
         StartCoroutine(StartManager());
+        highScore.gameObject.SetActive(false);
+        finalScore.gameObject.SetActive(false);
+
+        Instance = this;
+        DontDestroyOnLoad(highScore.gameObject);
+        DontDestroyOnLoad(finalScore.gameObject);
+
+        string databasePath = Application.persistentDataPath + "/playerdata.db";
+        database = new SQLiteConnection(databasePath);
+        database.CreateTable<GameManager>();
+        DontDestroyOnLoad(Instance);
     }
 
     // Update is called once per frame
     void Update()
     {
+
         batteryLifeTimer = batteryLifeTimer - Time.deltaTime;
         if (batteryLifeTimer <= 0)
         {
 
             Time.timeScale = 0f;
+            isGameLost = true;
 
         }
         batteryLifeText.text = "Battery Life: " + (int)batteryLifeTimer;
         if (Time.timeScale == 0f)
         {
-          LossButton.gameObject.SetActive(true);
+            /*highScore.gameObject.SetActive(true);
+            finalScore.gameObject.SetActive(true); */
+            isGameLost = true;
+            
+        }
+        if(isGameLost == true)
+        {
+           SceneManager.LoadScene("MainMenu");
+           Destroy(Instance);
+        }
+
+        gameTimer = gameTimer + Time.deltaTime;
+        if(gameTimer >= levelSwitchTime)
+        {
+            SceneManager.LoadSceneAsync("TestScene");
+            gameTimer = 0f;
         }
 
     }
+
+    public void GetPlayerData(string nameOfPlayer)
+    {
+        if(PlayerPrefs.HasKey("SavedHighScore"))
+        {
+            if(scoreAmount > PlayerPrefs.GetInt("SavedHighScore"))
+            {
+                PlayerPrefs.SetInt("SavedHighScore", scoreAmount);
+            }
+        }
+
+        else
+        {
+                PlayerPrefs.SetInt("SavedHighScore", scoreAmount);
+        }
+        finalScore.text = "Your Score: "+scoreAmount.ToString();
+        highScore.text = "High Score "+PlayerPrefs.GetInt("SavedHighScore").ToString();
+
+        playerName = nameOfPlayer;
+        PlayerPrefs.SetString("PlayerName", playerName);
+        PlayerPrefs.Save(); 
+    }
+
+
 
     public void SpawnNextTile()
     {
@@ -119,14 +199,19 @@ public class GameManager : MonoBehaviour
         Transform nextTrainTile = newTrainTile.Find("Next Spawn Position");
         
         Vector3 newPosition = nextTrainTile.position;
-        newPosition.z = newPosition.z + zPositionIncrease;//25F;//10;
-
-        nextTrainTile_SpawnPosition = newPosition;//nextTrainTile.position;
+        newPosition.z = newPosition.z + zPositionIncrease;
+        
+        nextTrainTile_SpawnPosition = newPosition;
         nextTrainTileRotation = nextTrainTile.rotation;
 
+
         SpawnObstacles(newTrainTile);
-        SpawnElectricCables(newTrainTile);
+        SpawnPuddles(newTrainTile);
         SpawnPickups(newTrainTile);
+        SpawnPhasabilityDevice(newTrainTile);
+        SpawnBrooms(newTrainTile);
+
+
     }
 
 
@@ -147,21 +232,25 @@ public class GameManager : MonoBehaviour
         {
             for (int i = 0; i < batterySpawnPoints.Count; i++)
             {
-            GameObject batterySpawnPositionObject = batterySpawnPoints[i];
-            Vector3 batterySpawnPosition = batterySpawnPositionObject.transform.position;
+                GameObject batterySpawnPositionObject = batterySpawnPoints[i];
 
-            float newBatteryXpos = Random.Range(-7, 7);
-            batteryPickupPosition.x = newBatteryXpos;
-            batterySpawnPosition.x = newBatteryXpos;
-            batterySpawnPosition.y = -2;
+                float randomizedXpos = Random.Range(-7.5f, 4.8f);
+                Vector3 batterySpawnPosition = new(randomizedXpos, batterySpawnPositionObject.transform.position.y, batterySpawnPositionObject.transform.position.z);
 
-            Transform newBatteryObject = Instantiate(batteryickup, batterySpawnPosition, Quaternion.identity);
-            newBatteryObject.SetParent(batterySpawnPositionObject.transform);
+                batterySpawnPositionObject.transform.position = batterySpawnPosition;
+                Vector3 spawnPosition = batterySpawnPositionObject.transform.position;
+ 
+               Transform newBatteryObject = Instantiate(batteryickup, spawnPosition, Quaternion.identity);
+               newBatteryObject.SetParent(batterySpawnPositionObject.transform);
             }
 
         }
 
+    }
 
+
+    void SpawnPhasabilityDevice(Transform newTrainTile)
+    {
         List<GameObject> phasabilityPickupsSpawns = new List<GameObject>();
         foreach(Transform child in newTrainTile)
         {
@@ -176,15 +265,20 @@ public class GameManager : MonoBehaviour
             for(int i = 0; i<phasabilityPickupsSpawns.Count; i++)
             {
                 GameObject phasabilityDeviceObject = phasabilityPickupsSpawns[i];
-                Vector3 phasabilityDevice_SpawnPos = phasabilityDeviceObject.transform.position;
-                float randomizedXposition = Random.Range(-4.5f, 4.5f);
-                phasabilityDevice_SpawnPos.x = randomizedXposition;
-                Transform newPhasabilityDevice = Instantiate(phasabilityDevice, phasabilityDevice_SpawnPos, Quaternion.identity);
+
+                minPhaseXposition = -5.33f;
+                maxPhaseXposition = 4.73f;
+                float randomizedXposition = Random.Range(minPhaseXposition, maxPhaseXposition);
+
+                Vector3 phasabilityDevice_SpawnPos = new(randomizedXposition, phasabilityDeviceObject.transform.position.y, phasabilityDeviceObject.transform.position.z);
+                phasabilityDeviceObject.transform.position = phasabilityDevice_SpawnPos;
+                Vector3 phaseSpawnPos = phasabilityDeviceObject.transform.position;
+
+                Transform newPhasabilityDevice = Instantiate(phasabilityDevice, phaseSpawnPos, Quaternion.identity);
                 newPhasabilityDevice.SetParent(phasabilityDeviceObject.transform);
             }
         }
     }
-
 
     void SpawnObstacles(Transform newTrainTileObject)
     {
@@ -210,18 +304,19 @@ public class GameManager : MonoBehaviour
             //The game object at the randomly chosen index will be assigned to a GameObject variable
             GameObject spawnPositionObject = doubleSeatSpawnPoints[i];
 
-            obstMinXposition = -7f;
-            obstMaxXposition = 0.60f;
+                obstMinXposition = -5.345429f;//-7f;
+                obstMaxXposition = -0.73f;//0.60f;
             float obstXPosition = Random.Range(obstMinXposition, obstMaxXposition);
 
             Vector3 spawnPosObjectPosition = new(obstXPosition, spawnPositionObject.transform.position.y, spawnPositionObject.transform.position.z);
             spawnPositionObject.transform.position = spawnPosObjectPosition; 
 
             //That variable's position will be used to determine where the doubleSeatObstacle spawns
-            Vector3 spawnPosition = spawnPositionObject.transform.position; 
+            Vector3 spawnPosition = spawnPositionObject.transform.position;
 
-            //Spawn the doubleSeatObstacle
-            Transform newObstacleObject = Instantiate(doubleSeatObstacle, spawnPosition, Quaternion.identity);
+
+                //Spawn the doubleSeatObstacle
+                Transform newObstacleObject = Instantiate(doubleSeatObstacle, spawnPosition, Quaternion.identity);
 
             newObstacleObject.SetParent(spawnPositionObject.transform);
             }
@@ -242,19 +337,19 @@ public class GameManager : MonoBehaviour
                 {
                     for(int i = 0; i < singleSeatSpawnPoints.Count; i++)
                     {
-                GameObject spawnPositionObject1 = singleSeatSpawnPoints[i];
+                        GameObject spawnPositionObject1 = singleSeatSpawnPoints[i];
 
-                obstMaxXposition = 6f;
-                obstMinXposition = -4f;
-                float obstXPosition1 = Random.Range(obstMinXposition, obstMaxXposition);
+                        obstMaxXposition = 6f;
+                        obstMinXposition = -4f;
+                        float obstXPosition1 = Random.Range(obstMinXposition, obstMaxXposition);
 
-                Vector3 spawnPosObjectPosition1 = new(obstXPosition1, spawnPositionObject1.transform.position.y, spawnPositionObject1.transform.position.z);
-              /*  spawnPositionObject1.transform.position = spawnPosObjectPosition1; 
-                
-                Vector3 spawnPosition1 = spawnPositionObject1.transform.position;*/
+                        Vector3 spawnPosObjectPosition1 = new(obstXPosition1, spawnPositionObject1.transform.position.y, spawnPositionObject1.transform.position.z);
+                        spawnPositionObject1.transform.position = spawnPosObjectPosition1;
+                        Vector3 spawnPosition = spawnPositionObject1.transform.position;
+                        
 
-                Transform newObstacleObject1 = Instantiate(singleSeatObstacle, spawnPosObjectPosition1, Quaternion.identity);
-                newObstacleObject1.SetParent(spawnPositionObject1.transform);
+                        Transform newObstacleObject1 = Instantiate(singleSeatObstacle, spawnPosition, Quaternion.identity);
+                        newObstacleObject1.SetParent(spawnPositionObject1.transform);
                     }
                 }
 
@@ -262,7 +357,7 @@ public class GameManager : MonoBehaviour
             }
         } 
     }
-    void SpawnElectricCables(Transform newTrainTile)
+    void SpawnPuddles(Transform newTrainTile)
         {
             List<GameObject> electricCableSpawnPoints = new List<GameObject>();
             foreach(Transform child in newTrainTile)
@@ -279,26 +374,95 @@ public class GameManager : MonoBehaviour
             for(int i = 0; i<electricCableSpawnPoints.Count; i++)
             {
                 GameObject cableSpawnPositionObject = electricCableSpawnPoints[i];
-                /**/
-                obstMinXposition = -4f;//10f;
-                obstMaxXposition = 4.8f;
+                
+                obstMinXposition = -4.56f;//10f;
+                obstMaxXposition = 5.05f;
                 float puddleXposition = Random.Range(obstMinXposition, obstMaxXposition);
-                Vector3 cableSpawnPosition = new(puddleXposition, cableSpawnPositionObject.transform.position.y, cableSpawnPositionObject.transform.position.z);//cableSpawnPositionObject.transform.position;
+                Vector3 cableSpawnPosition = new(puddleXposition, cableSpawnPositionObject.transform.position.y, cableSpawnPositionObject.transform.position.z);
+
+                cableSpawnPositionObject.transform.position = cableSpawnPosition;
+                Vector3 spawnPosition = cableSpawnPositionObject.transform.position;
+
                 float cableYRotation = Random.Range(0, 180);
                 Quaternion cableRotation = Quaternion.Euler(Quaternion.identity.x, cableYRotation, Quaternion.identity.z);
-                Transform newCableObject = Instantiate(electricCableInPuddle, cableSpawnPosition, cableRotation);
+
+                Transform newCableObject = Instantiate(electricCableInPuddle, spawnPosition, cableRotation);
                 newCableObject.SetParent(cableSpawnPositionObject.transform);
             }
-              //  int randomizedSpawnPoints = Random.Range(0, electricCableSpawnPoints.Count);
 
             }
         }
+
+    void SpawnBrooms(Transform newTrainTile)
+    {
+        foreach (Transform child in newTrainTile)
+        {
+            if(child.gameObject.CompareTag("Broom"))
+            {
+                GameObject broomSpawnObject = child.gameObject;
+                float minBroomXpos = -5f;
+                float maxBroomXpos = 5f;
+
+                float broomXpos = Random.Range(minBroomXpos, maxBroomXpos);
+                Vector3 broomSpawnPosition = new(broomXpos, broomSpawnObject.transform.position.y, broomSpawnObject.transform.position.z);
+
+                broomSpawnObject.transform.position = broomSpawnPosition;
+                Vector3 broomSpawnPoint = broomSpawnObject.transform.position;
+
+                Transform newBroomObject = Instantiate(broom, broomSpawnPoint , Quaternion.identity);
+                newBroomObject.SetParent(broomSpawnObject.transform);
+
+            }
+        }
+    }
+
+   /* void SpawnKnives(Transform newTrainTile)
+    {
+        float bossTimer = 20f;
+        Debug.Log("KNIVES!!");
+           List<GameObject> knivesSpawnPoints = new List<GameObject>();
+        foreach(Transform child in newTrainTile)
+        {
+ 
+            if (child.gameObject.CompareTag("Boss Spawn"))
+            {
+                knivesSpawnPoints.Add(child.gameObject);
+            }
+
+            if(knivesSpawnPoints.Count > 0)
+            {
+                Debug.Log("Knife list initialized");
+            for (int i = 0; i < knivesSpawnPoints.Count; i++) 
+            {
+                GameObject knifeSpawnObject = knivesSpawnPoints[i];
+
+                    float minKnifeXpos = -4f;
+                    float maxKnifeXpos = 4f;
+                    float knifeXpos = Random.Range(minKnifeXpos, maxKnifeXpos);
+                Vector3 knifeSpawnPosition = new Vector3(knifeXpos, knifeSpawnObject.transform.position.y, knifeSpawnObject.transform.position.z);
+                    knifeSpawnObject.transform.position = knifeSpawnPosition;
+                    Vector3 knifeSpawnPos = knifeSpawnObject.transform.position;
+
+                Quaternion knifeRotation = Quaternion.Euler(90, 0, 0);
+                Transform newestKnife = Instantiate(knifeObject, knifeSpawnPos, knifeRotation);
+                    if (newestKnife)
+                    {
+                        Debug.LogWarning("No Knife");
+                    }
+
+                newestKnife.SetParent(knifeSpawnObject.transform);
+                Rigidbody knifeRB = newestKnife.GetComponent<Rigidbody>();
+                knifeRB.linearVelocity = knifeSpawnObject.transform.forward * knifeSpeed;
+                Destroy(knifeRB, 4);
+            }
+            }
+        }
+    }  */
 
    public void RestartGame()
     {
         SceneManager.LoadScene(0);
         Time.timeScale = 1f;
-        batteryLifeTimer = 5;
     }
 
     public void ShowScore()

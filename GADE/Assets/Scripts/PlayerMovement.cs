@@ -1,19 +1,21 @@
+using System.Collections;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.ProBuilder.Shapes;
 
 public class PlayerMovement : MonoBehaviour
 {
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     float forwardMovement;
-    [SerializeField] float forwardMovementSpeed = 10f;
+    [SerializeField] float forwardMovementSpeed = 25f;
 
 
     float swerveMovement;
-    [SerializeField] float swerveSpeed = 5f;
+    [SerializeField] float swerveSpeed = 10f;
 
     Rigidbody playerRB;
     bool isPlayerJumping;
-    float jumpForce = 6f;
+    float jumpForce = 12f;
 
     [SerializeField] LayerMask GroundLayer;
     float playerDistanceToGround = 0.5f;
@@ -21,40 +23,33 @@ public class PlayerMovement : MonoBehaviour
     int batteryLifeDecrease = 5;
 
     BoxCollider playerBoxColl;
-    [SerializeField] BoxCollider puddleBoxCollider;
-    [SerializeField] LayerMask Player;
-    [SerializeField] LayerMask Obstacles;
+
+    Renderer playerRenderer;
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         playerRB = GetComponent<Rigidbody>();
         playerBoxColl = GetComponent<BoxCollider>();
+        playerRenderer = this.gameObject.GetComponent<Renderer>();
+       DontDestroyOnLoad(this.gameObject);
+
     }
 
-     public void PhaseThrough()
+   public IEnumerator PhaseThrough()
     {
+        Color playerCarColor = playerRenderer.material.color;
+        playerCarColor.a = 0.5f;
+        playerRenderer.material.color = playerCarColor;
 
-        float phaseDuration = 7;
-        float timer = 0;
-            Renderer renderer = GetComponent<Renderer>();
-            Color color = renderer.material.color;
-      
+        float phaseDuration = 10;
+        Physics.IgnoreLayerCollision(7, 8, true); 
+        yield return new WaitForSeconds(phaseDuration);
 
-        while(phaseDuration > timer)
-        {
-            Physics.IgnoreCollision(playerBoxColl, puddleBoxCollider, true);
-            Physics.IgnoreLayerCollision(LayerMask.NameToLayer("Player"), LayerMask.NameToLayer("Obstacles"), true);
-            color.a = 0.5f;
-            timer = timer + Time.deltaTime;
-        }
-
-        if(timer >= phaseDuration)
-        {
-            Physics.IgnoreLayerCollision(LayerMask.NameToLayer("Player"), LayerMask.NameToLayer("Obstacles"), false);
-            Physics.IgnoreCollision(puddleBoxCollider, puddleBoxCollider, false);
-            color.a = 1f;
-        }
+        playerCarColor.a = 1f;
+        playerRenderer.material.color = playerCarColor;
+        Physics.IgnoreLayerCollision(7, 8, false);
     }
 
     // Update is called once per frame
@@ -62,12 +57,16 @@ public class PlayerMovement : MonoBehaviour
     {
         isPlayerJumping = Input.GetKeyDown(KeyCode.J) || Input.GetKeyDown(KeyCode.Space);
 
+        if (this.transform.position.z > 15 && this.transform.position.z < 15.5f)
+        {
+          //  SpawnObj();
+        }
+
     }
 
     private void FixedUpdate()
     {
         swerveMovement = Input.GetAxis("Horizontal") * swerveSpeed;
-        forwardMovementSpeed = 10f;
        Vector3 playerMovement = new(swerveMovement * Time.deltaTime, 0, forwardMovementSpeed * Time.deltaTime);
 
         playerRB.MovePosition(this.transform.position + playerMovement);
@@ -91,10 +90,9 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsPlayerGrounded()
     {
-        // Vector3 boxBottom = new Vector3(playerBoxColl.bounds.center.x, playerBoxColl.bounds.min.y, playerBoxColl.bounds.center.z);
 
         Vector3 boxCenter = new Vector3( playerBoxColl.bounds.center.x, playerBoxColl.bounds.min.y, playerBoxColl.bounds.center.z);
-        Vector3 halfExtents = new Vector3(playerBoxColl.size.x * 0.9f, 0.10f, playerBoxColl.size.z * 0.9f);
+        Vector3 halfExtents = new Vector3(playerBoxColl.size.x * 0.9f, 0, playerBoxColl.size.z * 0.9f);
         bool playerGrounded = Physics.CheckBox(boxCenter, halfExtents, Quaternion.identity, GroundLayer, QueryTriggerInteraction.Ignore);
         return playerGrounded;
     }
@@ -103,11 +101,23 @@ public class PlayerMovement : MonoBehaviour
     {
         if(other.gameObject.CompareTag("Obstacle Collider"))
         { 
+
+
             GameManager gameManagerObject = GameObject.FindFirstObjectByType<GameManager>();
             gameManagerObject.batteryLifeTimer = gameManagerObject.batteryLifeTimer - batteryLifeDecrease;
         }
 
     }
 
-   
+
+   /* GameObject SpawnObj()
+    {
+        Vector3 spawnPosition = this.transform.position;
+        spawnPosition.z = this.transform.position.z - 5;
+
+        GameObject newObj = Instantiate(cube, spawnPosition, Quaternion.identity);
+       
+        return newObj;
+    }
+    */
 }
