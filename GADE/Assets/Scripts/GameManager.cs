@@ -38,7 +38,7 @@ public class GameManager : MonoBehaviour
     float zPosDecrease;
 
     //BATTERIES
-    public float batteryLifeTimer = 5;
+    public static float batteryLifeTimer = 45;
     [SerializeField] Transform batteryickup;
     Quaternion batteryickupRotation;
     Vector3 batteryPickupPosition;
@@ -55,10 +55,10 @@ public class GameManager : MonoBehaviour
 
     [PrimaryKey, AutoIncrement] int playerID {  get; set; }
 
-    public int scoreAmount = 0;
+    public static int scoreAmount = 0;
     int scoreAmountIncrease = 1;
-    public static TMP_Text highScore;
-    public static TMP_Text finalScore;
+    public TMP_Text highScore;
+    public TMP_Text finalScore;
     public static GameManager gameManagerObject {  get; private set; }
 
     //PHASABILITY
@@ -80,11 +80,7 @@ public class GameManager : MonoBehaviour
     [SerializeField]Transform knifeObject;
     float knifeSpeed = 60f;
     public float timeBeforeSpawn = 20f;
-
-   [SerializeField] PlayerMovement player;
-    float gameTimer = 0;
-    float levelSwitchTime = 5f;
-
+  
 
     //PLAYER INFO
     string playerName = "Player";
@@ -94,10 +90,29 @@ public class GameManager : MonoBehaviour
 
     SQLiteConnection database;
 
+    private void Awake()
+    {
+        if(Instance == null)
+        {
+          Instance = this;
+        }
+
+        else if(Instance != this) 
+        {
+            Destroy(this.gameObject);
+        }
+
+
+        SceneManager.sceneLoaded += NewSceneLoading;
+
+    }
+
+        float time = 0;
+    float levelRuntime = 60;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-
+        Time.timeScale = 1f;
         //Before the game starts, the next tile to spawn is the first one
         nextTrainTile_SpawnPosition = trainStartPosition;
         nextTrainTileRotation = Quaternion.identity;
@@ -115,6 +130,12 @@ public class GameManager : MonoBehaviour
 
         batteryLifeText.text = "Battery Life: " + (int)batteryLifeTimer;
         scoreText.text = "Score :" + (int)scoreAmount;
+        Scene currentScene = SceneManager.GetActiveScene();
+        if(currentScene.name != "MainMenu")
+        {
+            DontDestroyOnLoad(scoreText.gameObject);
+            DontDestroyOnLoad(batteryLifeText.gameObject);
+        }
 
         InventoryManager = GetComponent<InventoryManager>();
 
@@ -124,19 +145,35 @@ public class GameManager : MonoBehaviour
         highScore.gameObject.SetActive(false);
         finalScore.gameObject.SetActive(false);
 
-        Instance = this;
-        DontDestroyOnLoad(highScore.gameObject);
-        DontDestroyOnLoad(finalScore.gameObject);
 
-        string databasePath = Application.persistentDataPath + "/playerdata.db";
-        database = new SQLiteConnection(databasePath);
-        database.CreateTable<GameManager>();
-        DontDestroyOnLoad(Instance);
+    }
+
+    void NewSceneLoading(Scene scene, LoadSceneMode m)
+    {
+        PlayerMovement.Instance.transform.position = new Vector3(0, 3, 0);
+
     }
 
     // Update is called once per frame
     void Update()
     {
+        time = time + Time.deltaTime;
+        if(time >= levelRuntime)
+        {
+            Scene currentScene = SceneManager.GetActiveScene();
+            if(currentScene.name == "Railway Level")
+            {
+               SceneManager.LoadSceneAsync("SampleScene");
+            }
+
+            else if(currentScene.name == "SampleScene")
+            {
+              SceneManager.LoadSceneAsync("Railway Level");
+            }
+
+            time = 0;
+        }
+
 
         batteryLifeTimer = batteryLifeTimer - Time.deltaTime;
         if (batteryLifeTimer <= 0)
@@ -156,20 +193,16 @@ public class GameManager : MonoBehaviour
         }
         if(isGameLost == true)
         {
+            GetPlayerData();
            SceneManager.LoadScene("MainMenu");
-           Destroy(Instance);
-        }
-
-        gameTimer = gameTimer + Time.deltaTime;
-        if(gameTimer >= levelSwitchTime)
-        {
-            SceneManager.LoadSceneAsync("TestScene");
-            gameTimer = 0f;
+           Destroy(Instance.gameObject);
+            Destroy(PlayerMovement.Instance.gameObject);
+            Time.timeScale = 1f;    
         }
 
     }
 
-    public void GetPlayerData(string nameOfPlayer)
+    public void GetPlayerData()
     {
         if(PlayerPrefs.HasKey("SavedHighScore"))
         {
@@ -183,19 +216,23 @@ public class GameManager : MonoBehaviour
         {
                 PlayerPrefs.SetInt("SavedHighScore", scoreAmount);
         }
+        PlayerPrefs.SetString("Final Score", scoreAmount.ToString());
         finalScore.text = "Your Score: "+scoreAmount.ToString();
         highScore.text = "High Score "+PlayerPrefs.GetInt("SavedHighScore").ToString();
-
-        playerName = nameOfPlayer;
-        PlayerPrefs.SetString("PlayerName", playerName);
         PlayerPrefs.Save(); 
     }
 
 
 
     public void SpawnNextTile()
-    {
-        Transform newTrainTile = Instantiate(trainTile, nextTrainTile_SpawnPosition, nextTrainTileRotation);
+    {      
+
+       Scene currentScene = SceneManager.GetActiveScene();
+        if (currentScene.name == "Railway Level")
+        {
+            Quaternion railwayRotation = Quaternion.Euler(0, 90, 0);
+            nextTrainTile_SpawnPosition.y = 0;
+            Transform newTrainTile = Instantiate(trainTile, nextTrainTile_SpawnPosition, railwayRotation);
         Transform nextTrainTile = newTrainTile.Find("Next Spawn Position");
         
         Vector3 newPosition = nextTrainTile.position;
@@ -204,12 +241,28 @@ public class GameManager : MonoBehaviour
         nextTrainTile_SpawnPosition = newPosition;
         nextTrainTileRotation = nextTrainTile.rotation;
 
+        SpawnPickups(newTrainTile);
+        }
+
+        else if (currentScene.name ==  "SampleScene")
+        {
+            Transform newTrainTile = Instantiate(trainTile, nextTrainTile_SpawnPosition, nextTrainTileRotation);
+        Transform nextTrainTile = newTrainTile.Find("Next Spawn Position");
+        
+        Vector3 newPosition = nextTrainTile.position;
+        newPosition.z = newPosition.z + zPositionIncrease;
+        
+        nextTrainTile_SpawnPosition = newPosition;
+        nextTrainTileRotation = nextTrainTile.rotation;
 
         SpawnObstacles(newTrainTile);
         SpawnPuddles(newTrainTile);
         SpawnPickups(newTrainTile);
         SpawnPhasabilityDevice(newTrainTile);
         SpawnBrooms(newTrainTile);
+
+        }
+
 
 
     }
@@ -239,7 +292,16 @@ public class GameManager : MonoBehaviour
 
                 batterySpawnPositionObject.transform.position = batterySpawnPosition;
                 Vector3 spawnPosition = batterySpawnPositionObject.transform.position;
- 
+                Scene currentScene = SceneManager.GetActiveScene();
+                if (currentScene.name == "Railway Level")
+                {
+                    spawnPosition.y = 1.84f;
+                }
+
+                else
+                {
+                    spawnPosition.y = batterySpawnPositionObject.transform.position.y;
+                }
                Transform newBatteryObject = Instantiate(batteryickup, spawnPosition, Quaternion.identity);
                newBatteryObject.SetParent(batterySpawnPositionObject.transform);
             }

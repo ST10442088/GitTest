@@ -20,15 +20,11 @@ public class MainMenuStuff : MonoBehaviour
         ExitButton.onClick.AddListener(ExitGame);
         AchievementsButton.onClick.AddListener(ShowAchievements);
 
-        highScore = GameManager.highScore;
-        highScore.text = GameManager.highScore.text;
-
-        finalScore = GameManager.finalScore;
-        finalScore.text = GameManager.finalScore.text;
-
         highScore.gameObject.SetActive(false);
         finalScore.gameObject.SetActive(false);
 
+        highScore.text = "Your High Score: "+PlayerPrefs.GetInt("SavedHighScore").ToString();
+        finalScore.text = "Your Previous Score: " + PlayerPrefs.GetString("Final Score");
         
     }
 

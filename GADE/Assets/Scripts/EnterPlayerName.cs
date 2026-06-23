@@ -4,6 +4,14 @@ public class EnterPlayerName : MonoBehaviour
 {
     [SerializeField] InputField playerNameInput;
     public static EnterPlayerName Instance;
+
+    private void Awake()
+    {
+        if(Instance == null)
+        {
+            Instance = this;
+        }
+    }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -21,6 +29,7 @@ public class EnterPlayerName : MonoBehaviour
 
    public void RetrievePlayerName()
     {
-        GameManager.Instance.GetPlayerData(playerNameInput.text);
+      //  GameManager.Instance.GetPlayerData(playerNameInput.text);
+     PlayerPrefs.SetString("Player Name", playerNameInput.text);
     }
 }

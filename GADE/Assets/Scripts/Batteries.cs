@@ -19,9 +19,9 @@ public class Batteries : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
        if (other.gameObject.CompareTag("Player"))
-        if(gameManager.batteryLifeTimer > 0)
+        if(GameManager.batteryLifeTimer > 0)
         {
-              gameManager.batteryLifeTimer = 45;
+              GameManager.batteryLifeTimer = 45;
               Debug.Log("Battery life refilled!");
               Destroy(this.gameObject);
         }

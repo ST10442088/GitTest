@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class TileEndBehaviour : MonoBehaviour
 {
-    float timeBeforeTileDestruction = 1.5f;
+    float timeBeforeTileDestruction = 2.5f;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {

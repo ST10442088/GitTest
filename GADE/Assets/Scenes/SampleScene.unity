@@ -202,7 +202,7 @@ MonoBehaviour:
   zPositionIncrease: 34
   doubleSeatObstacle: {fileID: 2663091113466485587, guid: 6e0c0eccadd816d4fab4bf5a48f250a0, type: 3}
   singleSeatObstacle: {fileID: 8185287375375047253, guid: 2ae556c867cf45043900de4dc78c16fe, type: 3}
-  electricCableInPuddle: {fileID: 8170408924639371096, guid: 1af7c3b7ce092db4fb3a79c79629af2d, type: 3}
+  electricCableInPuddle: {fileID: 4149807121096564585, guid: 1af7c3b7ce092db4fb3a79c79629af2d, type: 3}
   initialNumber_OfObstacles: 4
   batteryLifeTimer: 45
   batteryickup: {fileID: 5002560733503657358, guid: 2bd08d24ae8d4bf4bb364c685aee9757, type: 3}
@@ -216,7 +216,6 @@ MonoBehaviour:
   broom: {fileID: 6891210316468897665, guid: 28729e7d87dc8c74285c521229afec54, type: 3}
   knifeObject: {fileID: 3193461892495347081, guid: 619e3ef120a25e34d930973be0e73979, type: 3}
   timeBeforeSpawn: 20
-  player: {fileID: 7118841681598848948}
 --- !u!4 &309656179
 Transform:
   m_ObjectHideFlags: 0
@@ -1343,7 +1342,7 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 50
+  m_Intensity: 29.45
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -2379,10 +2378,10 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: bc982567aff6b2647bd977211c989cb9, type: 3}
-  m_Resource: {fileID: 8300000, guid: bc982567aff6b2647bd977211c989cb9, type: 3}
+  m_audioClip: {fileID: 8300000, guid: 58eaef07b8f0c5a41bf304b3812da3a0, type: 3}
+  m_Resource: {fileID: 8300000, guid: 58eaef07b8f0c5a41bf304b3812da3a0, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 1
+  m_Volume: 0.272
   m_Pitch: 1
   Loop: 1
   Mute: 0

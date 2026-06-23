@@ -17,10 +17,14 @@ public class KnifeObstacle : MonoBehaviour
     void Update()
     {
         GameManager gameManagerObject = GameObject.FindFirstObjectByType<GameManager>();
+        if (gameManagerObject != null)
+        {
         if (gameManagerObject.timeBeforeSpawn <= 0)
         {
             bossCollider.enabled=true;
         }
+        }
+
     }
 
     private void OnTriggerEnter(Collider other)

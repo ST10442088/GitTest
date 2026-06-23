@@ -2,6 +2,7 @@ using System.Collections;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.ProBuilder.Shapes;
+using UnityEngine.SceneManagement;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -26,6 +27,30 @@ public class PlayerMovement : MonoBehaviour
 
     Renderer playerRenderer;
 
+   public static PlayerMovement Instance;
+
+    AudioSource playerAudioSource;
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(this.gameObject);
+        }
+
+        else if (Instance != this)
+        {
+            Destroy(this.gameObject);
+            if(playerAudioSource != null)
+            {
+              playerAudioSource.Stop();
+            }
+
+        }
+
+    }
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -33,7 +58,11 @@ public class PlayerMovement : MonoBehaviour
         playerRB = GetComponent<Rigidbody>();
         playerBoxColl = GetComponent<BoxCollider>();
         playerRenderer = this.gameObject.GetComponent<Renderer>();
-       DontDestroyOnLoad(this.gameObject);
+        playerAudioSource = GetComponent<AudioSource>();
+        if (playerAudioSource != null )
+        {
+          playerAudioSource.Play();
+        }
 
     }
 
@@ -56,11 +85,12 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         isPlayerJumping = Input.GetKeyDown(KeyCode.J) || Input.GetKeyDown(KeyCode.Space);
-
-        if (this.transform.position.z > 15 && this.transform.position.z < 15.5f)
+        Scene currentScene = SceneManager.GetActiveScene();
+        if (currentScene.name == "Railway Level")
         {
-          //  SpawnObj();
+            forwardMovementSpeed = 10f;
         }
+
 
     }
 
@@ -100,11 +130,8 @@ public class PlayerMovement : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if(other.gameObject.CompareTag("Obstacle Collider"))
-        { 
-
-
-            GameManager gameManagerObject = GameObject.FindFirstObjectByType<GameManager>();
-            gameManagerObject.batteryLifeTimer = gameManagerObject.batteryLifeTimer - batteryLifeDecrease;
+        {
+            GameManager.batteryLifeTimer = GameManager.batteryLifeTimer - batteryLifeDecrease;
         }
 
     }
