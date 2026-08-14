@@ -14,7 +14,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Endless Runner Prototype/Railway Level.unity
     guid: 27f3e2d80fc067049ad2e9a475cb65ac
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/TestScene.unity
     guid: 2eda9da3a75c76a4996f8787574b584d
   m_configObjects:

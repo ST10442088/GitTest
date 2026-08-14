@@ -59,7 +59,7 @@ public class GameManager : MonoBehaviour
     int scoreAmountIncrease = 1;
     public TMP_Text highScore;
     public TMP_Text finalScore;
-    public static GameManager gameManagerObject {  get; private set; }
+    static int obstaclesPassedScore = 0;
 
     //PHASABILITY
     [SerializeField] Transform phasabilityDevice;
@@ -86,9 +86,12 @@ public class GameManager : MonoBehaviour
     string playerName = "Player";
    
     public static GameManager Instance;
-    bool isGameLost = false;
+   public bool isGameLost = false;
 
-    SQLiteConnection database;
+
+    [SerializeField] Button toMainMenu;
+    [SerializeField] Button resumeButton;
+
 
     private void Awake()
     {
@@ -102,13 +105,17 @@ public class GameManager : MonoBehaviour
             Destroy(this.gameObject);
         }
 
-
+        batteryLifeTimer = 45f;
+        scoreAmount = 0;
         SceneManager.sceneLoaded += NewSceneLoading;
 
     }
 
         float time = 0;
-    float levelRuntime = 60;
+    float levelRuntime = 5;
+    bool isGamePaused = false;
+
+   [SerializeField] Transform bossObject;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -146,32 +153,70 @@ public class GameManager : MonoBehaviour
         finalScore.gameObject.SetActive(false);
 
 
+        toMainMenu.gameObject.SetActive(false);
+        toMainMenu.onClick.AddListener(ReturnToMainMenu);
+
+        resumeButton.gameObject.SetActive(false);
+        resumeButton.onClick.AddListener(ResumeGame);
     }
 
     void NewSceneLoading(Scene scene, LoadSceneMode m)
     {
-        PlayerMovement.Instance.transform.position = new Vector3(0, 3, 0);
+        if(PlayerMovement.Instance != null)
+        {
+           PlayerMovement.Instance.transform.position = new Vector3(0, 3, 0);
+        }
+
 
     }
 
+    void ReturnToMainMenu()
+    {
+        SceneManager.LoadScene("MainMenu");
+        isGameLost = true;
+    }
+    bool isBossDoneSpawning = false;
     // Update is called once per frame
     void Update()
     {
+        Debug.LogWarning("Obstacles passed: "+obstaclesPassedScore.ToString());
+
+        if(isGameLost == false)
+        {
+           if(Input.GetKeyDown(KeyCode.P))
+           {
+              isGamePaused = true;
+           }
+        }
+
+        if(isGamePaused == true)
+        {
+            Time.timeScale = 0f;
+            PlayerMovement.playerAudioSource.Pause();
+            toMainMenu.gameObject.SetActive(true);
+            resumeButton.gameObject.SetActive(true);
+        }
+
         time = time + Time.deltaTime;
         if(time >= levelRuntime)
         {
-            Scene currentScene = SceneManager.GetActiveScene();
-            if(currentScene.name == "Railway Level")
-            {
-               SceneManager.LoadSceneAsync("SampleScene");
-            }
+            /*  Scene currentScene = SceneManager.GetActiveScene();
+              if(currentScene.name == "Railway Level")
+              {
+                 SceneManager.LoadSceneAsync("SampleScene");
+              }
 
-            else if(currentScene.name == "SampleScene")
-            {
-              SceneManager.LoadSceneAsync("Railway Level");
-            }
+              else if(currentScene.name == "SampleScene")
+              {
+                SceneManager.LoadSceneAsync("Railway Level");
+              }
 
-            time = 0;
+              time = 0;  */
+
+              StartCoroutine(SpawnBoss()); 
+ 
+
+            time = 0f;
         }
 
 
@@ -184,13 +229,11 @@ public class GameManager : MonoBehaviour
 
         }
         batteryLifeText.text = "Battery Life: " + (int)batteryLifeTimer;
-        if (Time.timeScale == 0f)
+        if (Time.timeScale == 0f && isGamePaused == false)
         {
-            /*highScore.gameObject.SetActive(true);
-            finalScore.gameObject.SetActive(true); */
-            isGameLost = true;
-            
+            isGameLost = true;     
         }
+
         if(isGameLost == true)
         {
             GetPlayerData();
@@ -222,7 +265,14 @@ public class GameManager : MonoBehaviour
         PlayerPrefs.Save(); 
     }
 
-
+    void ResumeGame()
+    {
+        Time.timeScale = 1f;
+        PlayerMovement.playerAudioSource.Play();
+        toMainMenu.gameObject.SetActive (false);
+        isGamePaused = false;
+        resumeButton.gameObject.SetActive (false);
+    }
 
     public void SpawnNextTile()
     {      
@@ -242,6 +292,8 @@ public class GameManager : MonoBehaviour
         nextTrainTileRotation = nextTrainTile.rotation;
 
         SpawnPickups(newTrainTile);
+            SpawnPuddles(newTrainTile);
+            SpawnBrooms(newTrainTile);
         }
 
         else if (currentScene.name ==  "SampleScene")
@@ -541,5 +593,24 @@ public class GameManager : MonoBehaviour
         }
         yield return null;
     }
+
+
+    public static void IncreaseObstaclesPassedScore()
+    {
+        obstaclesPassedScore = obstaclesPassedScore + 1;
+    }
+
+    IEnumerator SpawnBoss()
+    {
+        Vector3 spawnPosition =  PlayerMovement.Instance.gameObject.transform.position;
+        spawnPosition.y = 1;
+        spawnPosition.x = Random.Range(-7.48f, 1.17f);
+        spawnPosition.z = PlayerMovement.Instance.gameObject.transform.position.z + 5f;
+        Transform newBoss = Instantiate(bossObject, spawnPosition, Quaternion.identity);
+        //  newBoss.SetParent(PlayerMovement.Instance.gameObject.transform);
+        yield return new WaitForSeconds(1);
+    }
+
+
 
 }

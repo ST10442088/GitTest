@@ -21,6 +21,7 @@ public class PuddleDestruction : MonoBehaviour
         if (other.gameObject.CompareTag("Player"))
         {
             Time.timeScale = 0f;
+            GameManager.Instance.isGameLost = true;
         }
     }
 }

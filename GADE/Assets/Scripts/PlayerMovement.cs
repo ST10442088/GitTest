@@ -29,7 +29,7 @@ public class PlayerMovement : MonoBehaviour
 
    public static PlayerMovement Instance;
 
-    AudioSource playerAudioSource;
+  public static  AudioSource playerAudioSource;
 
     private void Awake()
     {
